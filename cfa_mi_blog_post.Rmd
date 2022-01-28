@@ -1,0 +1,61 @@
+---
+title: "CFA and MI Blog Post"
+author: "Matthew Schell"
+date: "1/17/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading libraries and dataset
+```{r}
+library(lavaan)
+#Load the dataset below to get started
+cfa_df <- read_csv()
+```
+ 
+#CFA
+```{r}
+model.enga1 <-'
+    beh =~ try_hard + wrk_hard + particip + careful + atten
+    aff =~ feelgood + interest + fun + enjoy
+    cogval =~ imp_me + imp_fut + meaning + waste_re + useless_re
+    cogself =~ ask_ques + think + connect + und_info + learn
+    '
+fit.enga1 <- cfa(model.enga1, data = cfa_df, missing = "fiml", estimator = "ML")
+summary(fit.enga1, fit.measures = TRUE, standardized = TRUE)
+
+model.enga1 <-'
+    beh =~ try_hard + wrk_hard + particip + careful + atten
+    aff =~ feelgood + interest + fun + enjoy
+    cogval =~ imp_me + imp_fut + meaning
+    cogself =~ ask_ques + think + connect + und_info + learn
+    '
+fit.enga1 <- cfa(model.enga1, data = cfa_df, missing = "fiml", estimator = "ML")
+summary(fit.enga1, fit.measures = TRUE, standardized = TRUE)
+```
+
+#Measurement invariance
+```{r}
+model.mi <- ' 
+beh =~ try_hard + wrk_hard + particip + careful + atten
+aff =~ feelgood + interest + fun + enjoy
+cogval =~ imp_me + imp_fut + meaning
+cogself =~ ask_ques + think + connect + und_info + learn
+'
+fit.config <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "female",  estimator = "ML")
+summary(fit.config, fit.measures = TRUE, standardized = TRUE)
+
+fit.weak <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "female", group.equal = "loadings",  estimator = "ML")
+summary(fit.weak, fit.measures = TRUE, standardized = TRUE)
+
+fit.strong <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "female", group.equal = c("loadings", "intercepts"),  estimator = "ML")
+summary(fit.strong, fit.measures = TRUE, standardized = TRUE)
+
+fit.strict <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "female", group.equal = c("loadings", "intercepts", "residuals"),  estimator = "ML")
+summary(fit.strict, fit.measures = TRUE, standardized = TRUE)
+```
+
+
