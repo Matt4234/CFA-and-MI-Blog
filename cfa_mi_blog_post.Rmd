@@ -1,0 +1,92 @@
+---
+title: "cfa_mi_blog_post"
+author: "Matthew Schell"
+date: "1/29/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading libraries and dataset
+```{r}
+library(lavaan)
+library(tidyverse)
+library(psych)
+#Load the dataset below to get started
+sample_df <- read_csv("C:/Users/schel/My Drive/Personal/Blog/cfa_mi_data.csv")
+
+#Reducing sample size so analyses run faster
+set.seed(101)
+sample_df <- sample_n(sample_df, 5000)
+
+#Splitting dataset in half since doing EFA and CFA is poor methodology 
+v <- as.vector(c(rep(TRUE,2500),rep(FALSE,2500)))
+ind <- sample(v)
+efa_df <- sample_df[ind, ] 
+cfa_df <- sample_df[!ind, ] 
+```
+ 
+#EFA
+```{r}
+efa_df <- select(efa_df, Q22A, Q2A, Q3A, Q4A, Q42A, Q6A, Q41A, Q12A, Q40A, Q10A, Q39A, Q8A, Q26A, Q14A, Q28A, Q31A, Q17A, Q18A, Q19A, Q20A, Q38A)
+
+para <- psych::fa.parallel(efa_df, fm = "ml", fa = "fa")
+para$fa.values
+para$pc.values
+
+efa_fit <- fa(efa_df, nfactors = 2, rotate = "oblimin", fm = "ml")
+print(efa_fit, cut = 0.3)
+efa_fit$loadings
+efa_fit$Vaccounted
+fa.diagram(efa_fit)
+
+efa_fit2 <- fa(efa_df, nfactors = 3, rotate = "oblimin", fm = "ml")
+print(efa_fit2, cut = 0.3)
+efa_fit2$loadings
+efa_fit2$Vaccounted
+fa.diagram(efa_fit2)
+
+efa_fit2 <- fa(efa_df, nfactors = 4, rotate = "oblimin", fm = "ml")
+print(efa_fit2, cut = 0.3)
+efa_fit2$loadings
+efa_fit2$Vaccounted
+fa.diagram(efa_fit2)
+```
+
+#CFA
+```{r}
+model.dass <-'
+    stress =~ Q22A + Q6A + Q12A + Q39A + Q8A + Q14A + Q18A
+    anxiety =~ Q2A + Q4A + Q41A + Q40A + Q28A + Q19A + Q20A
+    depression =~ Q3A + Q42A + Q10A + Q26A + Q31A + Q17A + Q38A 
+    '
+fit.dass <- cfa(model.dass, data = cfa_df, missing = "fiml", estimator = "ML")
+summary(fit.dass, fit.measures = TRUE, standardized = TRUE)
+```
+
+#Measurement invariance by voting status
+```{r}
+#Commented out is dyplr version
+cfa_df$voted <- replace(cfa_df$voted, cfa_df$voted == 0, NA)
+#cfa_df$voted <- na_if(cfa_df$voted, 0)
+
+model.mi <- ' 
+    stress =~ Q22A + Q6A + Q12A + Q39A + Q8A + Q14A + Q18A
+    anxiety =~ Q2A + Q4A + Q41A + Q40A + Q28A + Q19A + Q20A
+    depression =~ Q3A + Q42A + Q10A + Q26A + Q31A + Q17A + Q38A 
+'
+fit.config <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "voted",  estimator = "ML")
+summary(fit.config, fit.measures = TRUE, standardized = TRUE)
+
+fit.weak <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "voted", group.equal = "loadings",  estimator = "ML")
+summary(fit.weak, fit.measures = TRUE, standardized = TRUE)
+
+fit.strong <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "voted", group.equal = c("loadings", "intercepts"),  estimator = "ML")
+summary(fit.strong, fit.measures = TRUE, standardized = TRUE)
+
+fit.strict <- cfa(model.mi, data = cfa_df, missing = "fiml", group = "voted", group.equal = c("loadings", "intercepts", "residuals"),  estimator = "ML")
+summary(fit.strict, fit.measures = TRUE, standardized = TRUE)
+```
+
